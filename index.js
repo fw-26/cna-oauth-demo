@@ -6,10 +6,20 @@ const port = process.env.PORT || 3000
 const app = express()
 
 app.get("/", (req, res) => {
-    return res.send(`
-        <h1>Välkommen!</h1>
-        <a href="./auth">Sign in with GitHub</a>
-    `)
+    if (!req.query.token) {
+        return res.send(`
+            <h1>OAuth-demo</h1>
+            <a href="./auth">Sign in with GitHub</a>
+        `)
+    } else {
+        const user = jwt.verify(req.query.token, process.env.JWT_SECRET);
+
+        return res.send(`
+            <h1>OAuth-demo</h1>
+            Välkommen ${user.name}!
+        `)
+    }
+
 });
 
 // vår egen endpoint för att redirecta till GitHub
@@ -41,9 +51,21 @@ app.get("/github-callback", async (req, res) => {
         const responseUser = await fetch("https://api.github.com/user", {
             headers: {'Authorization': `Bearer ${tokenData.access_token}`}
         });
-        const userData = await responseUser.json();
+        const gitHubUser = await responseUser.json();
+        console.log(gitHubUser);
 
-        console.log(userData);
+        // Vi använder gitHubUser för att skapa en egen JWT
+        const token = jwt.sign({
+            sub: gitHubUser.id,
+            userName: gitHubUser.login,
+            name: gitHubUser.name,
+            company: gitHubUser.company
+        }, process.env.JWT_SECRET, { expiresIn: '1h'});
+
+        console.log(token);
+
+        // Redirecta tillbaks till vår egen sida med vår egen JWT
+        res.redirect(`/?token=${token}`)
 
     } catch (error) {
         console.log(error);
