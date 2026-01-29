@@ -16,7 +16,8 @@ app.get("/", (req, res) => {
 
         return res.send(`
             <h1>OAuth-demo</h1>
-            Välkommen ${user.name}!
+            Välkommen ${user.name}
+            du är inloggad som ${user.userName}!
         `)
     }
 
